@@ -1,0 +1,142 @@
+USE ROLE SYSADMIN;
+CREATE DATABASE IF NOT EXISTS SMOOTHIES;
+USE DATABASE SMOOTHIES;
+CREATE SCHEMA IF NOT EXISTS PUBLIC;
+
+
+CREATE TABLE PUBLIC.FRUIT_OPTIONS (
+    FRUIT_ID NUMBER,
+    FRUIT_NAME VARCHAR(25)
+);
+
+
+-- A FILE FORMAT to Load the Fruit File
+create file format smoothies.public.two_headerrow_pct_delim
+   type = CSV,
+   skip_header = 2,   
+   field_delimiter = '%',
+   trim_space = TRUE
+
+
+
+   SELECT $1, $2, $3, $4, $5
+FROM @SMOOTHIES.PUBLIC.MY_UPLOADED_FILES/fruits_available_for_smoothies.txt
+(FILE_FORMAT => smoothies.public.two_headerrow_pct_delim);
+
+
+
+copy into smoothies.public.FRUIT_OPTIONS
+from ( SELECT $2 as FRUIT_ID, $1 as FRUIT_NAME
+FROM @SMOOTHIES.PUBLIC.MY_UPLOADED_FILES/fruits_available_for_smoothies.txt)
+FILE_FORMAT = (format_name = smoothies.public.two_headerrow_pct_delim)
+on_error = abort_statement
+purge = true;
+
+CREATE TABLE SMOOTHIES.PUBLIC.ORDERS (
+    INGREDIENTS VARCHAR(200)
+);
+
+
+insert into smoothies.public.orders(ingredients)
+            values ('Cantaloupe Gava Jackfruit Elderberries Figs');
+
+
+select * from SMOOTHIES.PUBLIC.ORDERS;
+truncate table SMOOTHIES.PUBLIC.ORDERS;
+
+alter table SMOOTHIES.PUBLIC.ORDERS add column name_on_order varchar(100);
+
+insert into smoothies.public.orders(ingredients,name_on_order)
+            values ('Cantaloupe Gava Jackfruit Elderberries Figs','shafi')
+
+ALTER TABLE smoothies.public.orders ADD COLUMN ORDER_FILLED BOOLEAN DEFAULT FALSE;
+
+       update smoothies.public.orders
+       set order_filled = true
+       where name_on_order is null;
+
+
+       alter table SMOOTHIES.PUBLIC.ORDERS 
+add column order_uid integer --adds the column
+default smoothies.public.order_seq.nextval  --sets the value of the column to sequence
+constraint order_uid unique enforced; --makes sure there is always a unique value in the column
+
+
+create or replace table smoothies.public.orders (
+       order_uid integer default smoothies.public.order_seq.nextval,
+       order_filled boolean default false,
+       name_on_order varchar(100),
+       ingredients varchar(200),
+       constraint order_uid unique (order_uid),
+       order_ts timestamp_ltz default current_timestamp()
+);
+
+CREATE OR REPLACE FUNCTION UTIL_DB.PUBLIC.NEUTRALIZE_WHINING(input_text TEXT)
+RETURNS TEXT
+LANGUAGE SQL
+AS
+$$
+    INITCAP(input_text)
+$$;
+
+-- Test the NEUTRALIZE_WHINING function
+SELECT UTIL_DB.PUBLIC.NEUTRALIZE_WHINING('tHiS iS a TeST sTRiNg') AS result;
+
+
+ALTER TABLE smoothies.public.FRUIT_OPTIONS
+DROP COLUMN SEARCH_ON;
+
+
+ALTER TABLE smoothies.public.FRUIT_OPTIONS
+DROP COLUMN SEARCH_ON;
+
+ALTER TABLE SMOOTHIES.PUBLIC.FRUIT_OPTIONS add COLUMN SEARCH_ON text;
+
+UPDATE smoothies.public.orders
+SET INGREDIENTS = ('Vanilla Fruit Nectarine ')
+WHERE ORDER_UID = 21;
+
+UPDATE smoothies.public.orders
+SET name_on_order = ('Divya')
+WHERE ORDER_UID = 20;
+
+UPDATE smoothies.public.orders
+SET INGREDIENTS = ('Dragon Fruit Guava Figs Jackfruit Blueberries ')
+WHERE ORDER_UID = 20;
+
+UPDATE smoothies.public.orders
+SET INGREDIENTS = ('Apples Lime Ximenia ')
+WHERE ORDER_UID = 19;
+
+
+
+
+
+select * from SMOOTHIES.PUBLIC.FRUIT_OPTIONS;
+
+
+update SMOOTHIES.PUBLIC.FRUIT_OPTIONS
+set SEARCH_ON ='Kiwi';
+
+update SMOOTHIES.PUBLIC.FRUIT_OPTIONS
+set SEARCH_ON ='Apple'
+where FRUIT_NAME ='Apples';
+
+
+update SMOOTHIES.PUBLIC.FRUIT_OPTIONS
+set SEARCH_ON ='Blueberry'
+where FRUIT_NAME ='Blueberries';
+
+
+update SMOOTHIES.PUBLIC.FRUIT_OPTIONS
+set SEARCH_ON ='94'
+where FRUIT_NAME ='Jackfruit';
+
+
+update SMOOTHIES.PUBLIC.FRUIT_OPTIONS
+set SEARCH_ON ='Raspberry'
+where FRUIT_NAME ='Raspberries';
+
+update SMOOTHIES.PUBLIC.FRUIT_OPTIONS
+set SEARCH_ON ='Strawberry'
+where FRUIT_NAME ='Strawberries';
